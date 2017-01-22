@@ -65,8 +65,7 @@ public class BeaconToParse {
         currentUser.saveInBackground(new SaveCallback() {
             @Override
             public void done(ParseException e) {
-                if(e!=null)
-                {
+                if (e != null) {
                     e.printStackTrace();
 //                    Log.d("errorin",e.printStackTrace());
                 }

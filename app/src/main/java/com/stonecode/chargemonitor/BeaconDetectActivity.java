@@ -1,11 +1,22 @@
 package com.stonecode.chargemonitor;
 
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
+
+import com.parse.ParseException;
+import com.parse.ParseUser;
 
 import org.altbeacon.beacon.BeaconConsumer;
 import org.altbeacon.beacon.BeaconManager;
@@ -22,6 +33,9 @@ import java.util.HashMap;
 
 public class BeaconDetectActivity extends AppCompatActivity implements BeaconConsumer {
 
+    private final Handler mHandler = new Handler();
+    private Runnable t1;
+
     private static String TAG = "MyActivity";
     private BeaconManager mBeaconManager;
     ArrayAdapter<String> departmentAdapter;
@@ -29,6 +43,16 @@ public class BeaconDetectActivity extends AppCompatActivity implements BeaconCon
     public HashMap<String, Region> ssnRegionMap;
     public ArrayList<String> regionNames = new ArrayList<>();
     public ArrayList<String> regions = new ArrayList<>();
+
+    String acBeacon = "0";
+    String fridgeBeacon = "0";
+    String tvBeacon = "0";
+    String heaterBeacon = "0";
+    String wmBeacon = "0";
+    String lightBeacon = "0";
+    String smartMeterBeacon = "0";
+
+    ParseUser currUser;
 
     @Override
     public void onResume() {
@@ -163,6 +187,7 @@ public class BeaconDetectActivity extends AppCompatActivity implements BeaconCon
 
         ssnRegionMap = new HashMap<>();
 
+        new getBeaconStatus().execute();
         ssnRegionMap.put("0x000000000001", new Region("Air Conditioner", Identifier.parse("0x424531b6b1bc0a2fa89e"), Identifier.parse("0x000000000001"), null));
         ssnRegionMap.put("0x111122223333", new Region("Smart Meter", Identifier.parse("0x11112222333344445555"), Identifier.parse("0x111122223333"), null));
         ssnRegionMap.put("0x000000000002", new Region("Fridge", Identifier.parse("0xb8ed0f35da2d8a65c6ef"), Identifier.parse("0x000000000002"), null));
@@ -185,7 +210,127 @@ public class BeaconDetectActivity extends AppCompatActivity implements BeaconCon
         String formattedDate = df.format(c.getTime());
         Log.d(TAG, "formattedDate: " + formattedDate);
         lvDepartment = (ListView) findViewById(R.id.lv_Departments);
-        departmentAdapter = new ArrayAdapter<String>(getApplicationContext(), R.layout.list_item_department, regionNames);
+        departmentAdapter = new ArrayAdapter<String>(getApplicationContext(), R.layout.list_item_department, regionNames) {
+            @NonNull
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+//                Log.d(TAG,"getViewENterd");
+                return super.getView(position, convertView, parent);
+            }
+        };
+
         lvDepartment.setAdapter(departmentAdapter);
+        t1 = new Runnable() {
+            @Override
+            public void run() {
+                new getBeaconStatus().execute();
+                mHandler.postDelayed(t1, 30 * 1000);
+            }
+        };
+        mHandler.post(t1);
+    }
+
+//    @Override
+//    protected void onDestroy() {
+//        super.onDestroy();
+//        mBeaconManager.unbind(this);
+//    }
+
+
+    public class getBeaconStatus extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            currUser = ParseUser.getCurrentUser();
+            try {
+                currUser = currUser.fetch();
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            acBeacon = currUser.getString("BtnAirconditioner");
+            fridgeBeacon = currUser.getString("BtnFridge");
+            lightBeacon = currUser.getString("BtnWashingMachine");
+            heaterBeacon = currUser.getString("BtnHeater");
+            tvBeacon = currUser.getString("BtnTV");
+            wmBeacon = currUser.getString("BtnWashingMachine");
+            smartMeterBeacon = currUser.getString("BtnSmartMeter");
+            Log.d(TAG, "backC: " + acBeacon + "\n" + fridgeBeacon);
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            // SUSHANT SHITS HERE (EVERYDAY) along with his mozo guys
+
+            ArrayList<String> regionNameCopy = new ArrayList<>();
+
+            for (String item : regionNames) {
+                switch (item) {
+                    case "Air Conditioner":
+                        if (acBeacon.equals("1")) regionNameCopy.add(item + " is on");
+                        else regionNameCopy.add(item + " is off");
+                        break;
+                    case "Smart Meter":
+                        if (smartMeterBeacon.equals("1")) regionNameCopy.add(item + " is on");
+                        else regionNameCopy.add(item + " is off");
+                        break;
+                    case "Fridge":
+                        if (fridgeBeacon.equals("1")) regionNameCopy.add(item + " is on");
+                        else regionNameCopy.add(item + " is off");
+                        break;
+                    case "Lighting":
+                        if (lightBeacon.equals("1")) regionNameCopy.add(item + " is on");
+                        else regionNameCopy.add(item + " is off");
+                        break;
+                    case "Washing Machine":
+                        if (wmBeacon.equals("1")) regionNameCopy.add(item + " is on");
+                        else regionNameCopy.add(item + " is off");
+                        break;
+                    case "Television":
+                        if (tvBeacon.equals("1")) regionNameCopy.add(item + " is on");
+                        else regionNameCopy.add(item + " is off");
+                        break;
+                    case "Heater":
+                        if (heaterBeacon.equals("1")) regionNameCopy.add(item + " is on");
+                        else regionNameCopy.add(item + " is off");
+                        break;
+
+                }
+            }
+            departmentAdapter = new ArrayAdapter<String>(getApplicationContext(), R.layout.list_item_department, regionNameCopy) {
+                @NonNull
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    Log.d(TAG, "getViewENterd");
+
+//                    for(int i=0;i<regionNames.size();i++)
+//                    {
+//                        if (regionNames.get(position).equals("Air Conditioner") && acBeacon.equals("0")) {
+//                            Log.d(TAG, "ac is offf");
+//                            regionNames.remove(position);
+//                            regionNames.add("Air Conditioner is off");
+//                            departmentAdapter.notifyDataSetChanged();
+////                            TextView tt = (TextView) convertView.findViewById(R.id.txt1);
+////                            tt.setTextColor(Color.RED);
+//                        } else if (regionNames.get(position).equals("Air Conditioner") && acBeacon.equals("1")) {
+//                            regionNames.remove(position);
+//                            regionNames.add("Air Conditioner is ON");
+//                            departmentAdapter.notifyDataSetChanged();
+//
+////                            TextView tt = (TextView) convertView.findViewById(R.id.txt1);
+////                            tt.setTextColor(Color.BLUE);
+//                        }
+//                    }
+
+                    return super.getView(position, convertView, parent);
+                }
+            };
+
+            lvDepartment.setAdapter(departmentAdapter);
+//           changeData();
+        }
     }
 }
