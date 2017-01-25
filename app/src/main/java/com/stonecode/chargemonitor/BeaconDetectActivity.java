@@ -224,7 +224,7 @@ public class BeaconDetectActivity extends AppCompatActivity implements BeaconCon
             @Override
             public void run() {
                 new getBeaconStatus().execute();
-                mHandler.postDelayed(t1, 30 * 1000);
+                mHandler.postDelayed(t1, 10 * 1000);
             }
         };
         mHandler.post(t1);
